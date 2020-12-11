@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class MemberService {
-
     private final MemberRepository memberRepository;
 
     // RequiredArgsConstructor 는 자동으로 아래와 같은 생성자를 만들어준다.
