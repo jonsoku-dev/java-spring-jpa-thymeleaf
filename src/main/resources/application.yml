@@ -10,10 +10,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create
-      properties:
-        hibernate:
+    properties:
+      hibernate:
 #          show_sql: true # system print
-          format_sql: true
+        format_sql: true
+        default_batch_fetch_size: 100
   thymeleaf:
     prefix: classpath:/templates/
     suffix: .html

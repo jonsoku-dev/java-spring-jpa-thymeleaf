@@ -10,6 +10,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.*;
 
+import org.hibernate.annotations.BatchSize;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
@@ -73,16 +74,41 @@ public class OrderRepository {
                 "select distinct o from Order o" +
                         " join fetch o.member m" +
                         " join fetch o.delivery d" +
-                        " join fetch o.orderItems oi" +
-                        " join fetch oi.item i", Order.class)
+                        " join fetch o.orderItems oi" + // 얘가 문제!!
+                        " join fetch oi.item i", Order.class) // 얘가 문제!!
                 // limit, offset이 없고, hibernate가 warn을 띄운다.
                 // 2020-12-12 15:01:09.359  WARN 50454 --- [nio-8083-exec-1] o.h.h.internal.ast.QueryTranslatorImpl
                 // : HHH000104: firstResult/maxResults specified with collection fetch; applying in memory!
                 // 단점1: 데이터가 뻥튀기된다.
                 // 단점2: 메모리에서 페이징처리를 한다. 데이터가 만개가있으면 만개를 어플리케이션에 퍼올린다음 소팅한다.
                 // 이럴경우 쿼리 몇개만들어오면 서버가 작살난다.
+                // 단점3: collection fetch join은 한개만 가능 !!!! 뎁스가 깊어질수록 데이터베이스는 어떤걸 기준으로 잡아야할지 모르기때문
 //                .setFirstResult(1)
 //                .setMaxResults(1000)
+                .getResultList();
+    }
+
+
+    // xToOne 관계는 모두 fetch join 한다. -> 데이터 뻥튀기와 관계없으니, row수를 증가시키지않기때문에 전혀 문제없음.
+    // xToMany는 그대로 냅둔다. (Lazy로 ! Dto 생성자에서 프록시초기화하면됨 -> 쿼리가 그만큼 나가게 됨)
+    // 위 문제를 해결하기위해
+    // @BatchSize(n) 혹은
+    // application.yml에 jpa.properties.default_batch_fetch_size를 넣는다.
+    public List<Order> findAllWithMemberDelivery() {
+        return em.createQuery(
+                "select o from Order o" +
+                        " join fetch o.member m" +
+                        " join fetch o.delivery d", Order.class)
+                .getResultList();
+    }
+
+    public List<Order> findAllWithMemberDelivery(int offset, int limit) {
+        return em.createQuery(
+                "select o from Order o" +
+                        " join fetch o.member m" +
+                        " join fetch o.delivery d", Order.class)
+                .setFirstResult(offset)
+                .setMaxResults(limit)
                 .getResultList();
     }
 }
